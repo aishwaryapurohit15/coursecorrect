@@ -80,8 +80,9 @@ def _concept_block(c: dict, with_misconception: bool = True) -> str:
     m = module_for_week(c["week"]) or {}
     out = [f"**{c['name']}** (Module {c['module']}: {c['module_title']}, Week {c['week']})", "", c["description"]]
     if with_misconception and c.get("misconceptions"):
-        out += ["", f"⚠️ *A common mix-up:* \"{c['misconceptions'][0]['text']}\". That isn't quite right; "
-                     "go back to the definition above and notice what it actually requires."]
+        mix = c["misconceptions"][0]["text"]
+        out += ["", f"⚠️ *A common mix-up* is thinking that \"{mix[:1].lower() + mix[1:]}.\" That isn't quite right, "
+                     "so go back to the definition above and notice what it actually requires."]
     if m.get("readings"):
         out += ["", "📖 *Where to read more:* " + "; ".join(m["readings"])]
     return "\n".join(out)
@@ -98,7 +99,7 @@ def offline_answer(question: str, week: int, ranked: list[tuple[float, dict]]) -
             "", _concept_block(a), "", "---", "", _concept_block(b), "",
             "**How to tell them apart:** read the two definitions side by side and ask what each one is "
             "*about* (its focus) and what would count as evidence for it. If one is about the "
-            "*kind* of change and the other about *how* it spreads or gets judged, they answer different questions.",
+            "*kind* of change and the other is about *how* it spreads or gets judged, they answer different questions.",
             "", "**Check yourself:** " + check_question(a),
         ])
     if QUIZ.search(question):
@@ -120,6 +121,10 @@ def offline_answer(question: str, week: int, ranked: list[tuple[float, dict]]) -
     return "\n".join(parts)
 
 
+def _join_and(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def intro_message(week: int) -> str:
     names = [c["name"] for c in concepts_taught_by(week) if c["week"] == week]
     m = module_for_week(week) or {}
@@ -128,7 +133,7 @@ def intro_message(week: int) -> str:
         "and quiz you so you can check your understanding. I won't write graded work for you, "
         "but I'm happy to help you get there yourself.\n\n"
         f"This week (Module {m.get('module', '?')}: {m.get('title', '')}) covers "
-        + (", ".join(f"**{n}**" for n in names) if names else "the current module")
+        + (_join_and([f"**{n}**" for n in names]) if names else "the current module")
         + ". Try asking something like *\"What's the difference between invention and innovation?\"*"
     )
 
@@ -136,7 +141,7 @@ def intro_message(week: int) -> str:
 def out_of_scope_message(week: int) -> str:
     names = [c["name"] for c in concepts_taught_by(week)][-6:]
     return ("I couldn't find that in this course's material, so I'd rather not guess. I can only answer "
-            "questions about topics taught so far, for example: " + ", ".join(names) +
+            "questions about topics taught so far, such as " + "; ".join(names) +
             ". For anything else, your instructor's office hours are the best place to ask.")
 
 
@@ -237,7 +242,7 @@ def respond(question: str, week: int, backend: str = "offline", history: list[di
     if SUPPORT.search(question or ""):
         return out(SUPPORT_MESSAGE, "support")
     if not clean.strip():
-        return out("I can only help with questions about this course. What concept would you like to go over?", "blocked")
+        return out("I can only help with questions about this course. Which concept would you like to go over?", "blocked")
     if GREETING.match(clean):
         return out(intro_message(week), "intro")
 
@@ -260,5 +265,6 @@ def respond(question: str, week: int, backend: str = "offline", history: list[di
             fn = answer_claude if backend == "claude" else answer_openai
             return out(fn(clean, week, concepts, history), "answer", concepts, backend)
         except Exception as e:  # network, auth, refusal...
-            notes.append(f"The {backend} model wasn't available ({type(e).__name__}), so this answer comes straight from the course model.")
+            name = {"claude": "Claude", "openai": "OpenAI"}[backend]
+            notes.append(f"The {name} model wasn't available ({type(e).__name__}), so this answer comes straight from the course model.")
     return out(offline_answer(clean, week, ranked), "answer", concepts, "offline")

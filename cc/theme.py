@@ -146,8 +146,8 @@ def section(label):
 
 def footer():
     st.markdown(
-        '<div class="cc-footer">CourseCorrect prototype for NYU School of Professional Studies · '
-        "simulated data only, no real student data · not an official NYU service</div>",
+        '<div class="cc-footer">CourseCorrect prototype for the NYU School of Professional Studies · '
+        "Simulated data only, no real student data · Not an official NYU service</div>",
         unsafe_allow_html=True,
     )
 

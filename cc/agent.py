@@ -120,7 +120,7 @@ def process(refl: dict, backend: str, roster: list[str]) -> dict:
         routes.append("follow_up")
     low_conf = [f for f in findings if f["confidence"] < REVIEW_CONFIDENCE]
     if low_conf:
-        reasons.append(f"{len(low_conf)} low-confidence finding(s)")
+        reasons.append(f"{len(low_conf)} low-confidence finding" + ("s" if len(low_conf) != 1 else ""))
     if dropped:
         reasons.append("; ".join(notes))
     if injection:
