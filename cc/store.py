@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS audit (
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, actor TEXT, action TEXT, detail TEXT
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+-- AI tutor usage: which course concept a question was about. No question text, no student ID.
+CREATE TABLE IF NOT EXISTS tutor_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, week INTEGER, concept TEXT, kind TEXT, created_at TEXT
+);
 """
 
 
@@ -112,6 +116,20 @@ def get_setting(con, key, default=None):
 def set_setting(con, key, value):
     con.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (key, value))
     con.commit()
+
+
+def log_tutor(con, week: int, concept: str | None, kind: str):
+    """Record that the tutor answered a question about `concept`. Support conversations are never logged."""
+    if kind == "support":
+        return
+    con.execute("INSERT INTO tutor_log(week, concept, kind, created_at) VALUES (?,?,?,?)", (week, concept or "none", kind, now()))
+    con.commit()
+
+
+def tutor_topic_counts(con, week: int) -> list[dict]:
+    rows = con.execute("SELECT concept, COUNT(*) n FROM tutor_log WHERE week=? AND kind='answer' AND concept!='none' "
+                       "GROUP BY concept ORDER BY n DESC", (week,)).fetchall()
+    return [dict(r) for r in rows]
 
 
 def purge_raw_text(con):

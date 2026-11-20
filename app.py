@@ -7,12 +7,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from cc import analytics, store, theme
+from cc import analytics, store, theme, tutor
 from cc.agent import process
 from cc.config import (CORE_PROMPTS, DISCLOSURE, MIN_GROUP_SIZE, OPTIONAL_PROMPT_ROTATION,
                        REVIEW_CONFIDENCE, SIGNAL_LABELS, SIGNALS, default_backend)
 from cc.course_model import concept_by_id, load_course_model, module_for_week
 from cc.pipeline import load_dataset, run_dataset
+from cc.privacy import redact
 
 st.set_page_config(page_title="CourseCorrect · NYU SPS", page_icon="🟣", layout="wide")
 theme.apply()
@@ -35,15 +36,16 @@ def week_label(w):
 
 # ---------------- Sidebar ----------------
 theme.sidebar_brand()
-page = st.sidebar.radio("Navigate", ["Student reflection", "Faculty dashboard", "Review queue", "Evaluation", "Setup & governance"])
+page = st.sidebar.radio("Navigate", ["Student reflection", "AI tutor", "Faculty dashboard", "Review queue", "Evaluation", "Setup & governance"])
 backends = ["offline", "claude", "openai"]
 if "backend" not in st.session_state:
     st.session_state.backend = default_backend()
 st.session_state.backend = st.sidebar.selectbox(
     "AI labeler", backends, index=backends.index(st.session_state.backend),
-    help="claude needs ANTHROPIC_API_KEY, openai needs OPENAI_API_KEY. offline is a rule-based fallback.")
+    help="Used by the reflection labeler and the AI tutor. claude needs ANTHROPIC_API_KEY, openai needs OPENAI_API_KEY. "
+         "offline is a rule-based fallback.")
 if st.session_state.backend == "offline":
-    st.sidebar.info("Offline mode: rule-based labeler (no API key). Set a key and pick claude or openai for the real agent.")
+    st.sidebar.info("Offline mode: rule-based labeler and retrieval-only tutor (no API key). Set a key and pick claude or openai for the real agent.")
 st.sidebar.caption("Prototype · simulated data only · no real student data")
 
 
@@ -96,6 +98,71 @@ def page_student():
                 con.execute("INSERT INTO student_flags(reflection_id, note, created_at) VALUES (?,?,?)", (rid, note, store.now()))
                 con.commit()
                 st.toast("Thanks, flagged for review.")
+
+
+# ---------------- AI tutor ----------------
+TUTOR_STARTERS = ["What's the difference between invention and innovation?",
+                  "Explain crossing the chasm with a workplace example",
+                  "Is disruptive just a more advanced technology?",
+                  "Quiz me on falsifiability"]
+
+
+def page_tutor():
+    theme.page_header("AI course tutor", "Ask about any idea from the course so far. It explains, corrects common mix-ups and quizzes you; it won't do graded work for you.",
+                      eyebrow="Student · CourseCorrect")
+    c1, c2 = st.columns([2, 1])
+    week = c1.selectbox("I'm in", WEEKS, index=len(WEEKS) - 1, format_func=week_label, key="tutor_week",
+                        help="The tutor only uses material taught up to this week.")
+    if c2.button("Start a new chat", width="stretch"):
+        st.session_state.tutor_msgs = []
+        st.session_state.tutor_last = []
+    with st.expander("How the tutor works and what it keeps"):
+        st.markdown(
+            "- Answers come only from the instructor-approved **course model**; if something isn't there, it says so rather than guess.\n"
+            "- Your message passes the same **privacy gateway** as reflections: names, emails, phone numbers and IDs are removed, "
+            "and instruction-like text aimed at the AI is ignored.\n"
+            "- It keeps **no transcript** and no student ID. Your instructor sees only how many questions were asked per topic, "
+            f"and topics with fewer than {MIN_GROUP_SIZE} questions are hidden.\n"
+            "- If you mention you're struggling, it points you to support right away. That stays with you: nothing is logged.\n"
+            "- It is an AI and can be wrong. It is not a crisis service and has no effect on your grade.")
+
+    msgs = st.session_state.setdefault("tutor_msgs", [])
+    if not msgs:
+        msgs.append({"role": "assistant", "content": tutor.intro_message(week), "kind": "intro"})
+
+    for m in msgs:
+        with st.chat_message(m["role"], avatar="🟣" if m["role"] == "assistant" else "🧑‍🎓"):
+            st.markdown(m["content"])
+            if m.get("sources"):
+                st.markdown("".join(f'<span class="cc-pill">Module {c["module"]} · {c["name"]}</span>' for c in m["sources"]),
+                            unsafe_allow_html=True)
+            for n in m.get("notes", []):
+                st.caption("🛡️ " + n)
+            if m["role"] == "assistant" and m.get("backend"):
+                st.caption("Written by " + {"offline": "the course-model retriever (offline)", "claude": "Claude, grounded in the course model",
+                                            "openai": "OpenAI, grounded in the course model", "rules": "CourseCorrect's guardrails"}[m["backend"]])
+
+    prompt = None
+    if len(msgs) <= 1:
+        cols = st.columns(len(TUTOR_STARTERS))
+        for col, q in zip(cols, TUTOR_STARTERS):
+            if col.button(q, key="starter_" + q, width="stretch"):
+                prompt = q
+    typed = st.chat_input("Ask about a concept, or say \"quiz me\"")
+    prompt = typed or prompt
+    if prompt:
+        history = [{"role": m["role"], "content": m["content"]} for m in msgs if m.get("kind") != "intro"]
+        with st.spinner("Thinking..."):
+            res = tutor.respond(prompt, week, st.session_state.backend, history=history,
+                                roster=load_dataset()["roster"], last_concepts=st.session_state.get("tutor_last"))
+        shown, _ = redact(prompt, load_dataset()["roster"])  # the on-screen transcript is redacted too
+        msgs.append({"role": "user", "content": shown})
+        msgs.append({"role": "assistant", "content": res["text"], "kind": res["kind"], "backend": res["backend"],
+                     "sources": [{"module": c["module"], "name": c["name"]} for c in res["sources"]], "notes": res["notes"]})
+        if res["sources"]:
+            st.session_state.tutor_last = [c["id"] for c in res["sources"]]
+        store.log_tutor(con, week, res["sources"][0]["id"] if res["sources"] else None, res["kind"])
+        st.rerun()
 
 
 # ---------------- Faculty dashboard ----------------
@@ -197,6 +264,19 @@ def page_dashboard():
         c2.caption("Paraphrased evidence (never direct quotes)")
         for e in analytics.evidence_for(results, week, topic):
             c2.markdown(f"- *{SIGNAL_LABELS[e['signal']]}* · {e['paraphrase']}" + (f" (×{e['count']})" if e["count"] > 1 else ""))
+
+    theme.section("AI tutor")
+    st.subheader("What students asked the tutor about")
+    st.caption(f"Question counts per topic only: no question text and no names. Topics with fewer than {MIN_GROUP_SIZE} questions are hidden.")
+    tq = store.tutor_topic_counts(con, week)
+    shown_tq = [t for t in tq if t["n"] >= MIN_GROUP_SIZE]
+    if shown_tq:
+        st.markdown("".join(f'<span class="cc-pill">{CONCEPTS[t["concept"]]["name"] if t["concept"] in CONCEPTS else t["concept"]} · {t["n"]} questions</span>'
+                            for t in shown_tq), unsafe_allow_html=True)
+    else:
+        st.write("Not enough tutor questions this week to show." if tq else "No tutor questions this week yet.")
+    if len(tq) > len(shown_tq):
+        st.caption(f"{len(tq) - len(shown_tq)} topic(s) hidden (fewer than {MIN_GROUP_SIZE} questions).")
 
     theme.section("Students")
     st.subheader("Follow-up requests")
@@ -326,6 +406,6 @@ def page_setup():
         st.dataframe(pd.read_sql("SELECT reflection_id, note, created_at FROM student_flags", con), hide_index=True)
 
 
-{"Student reflection": page_student, "Faculty dashboard": page_dashboard, "Review queue": page_review,
+{"Student reflection": page_student, "AI tutor": page_tutor, "Faculty dashboard": page_dashboard, "Review queue": page_review,
  "Evaluation": page_eval, "Setup & governance": page_setup}[page]()
 theme.footer()
