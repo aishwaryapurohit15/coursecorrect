@@ -7,14 +7,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from cc import analytics, store
+from cc import analytics, store, theme
 from cc.agent import process
 from cc.config import (CORE_PROMPTS, DISCLOSURE, MIN_GROUP_SIZE, OPTIONAL_PROMPT_ROTATION,
                        REVIEW_CONFIDENCE, SIGNAL_LABELS, SIGNALS, default_backend)
 from cc.course_model import concept_by_id, load_course_model, module_for_week
 from cc.pipeline import load_dataset, run_dataset
 
-st.set_page_config(page_title="CourseCorrect", page_icon="🧭", layout="wide")
+st.set_page_config(page_title="CourseCorrect · NYU SPS", page_icon="🟣", layout="wide")
+theme.apply()
 
 
 @st.cache_resource
@@ -33,9 +34,8 @@ def week_label(w):
 
 
 # ---------------- Sidebar ----------------
-st.sidebar.title("🧭 CourseCorrect")
-st.sidebar.caption("The AI diagnoses; faculty decide.")
-page = st.sidebar.radio("View", ["Student reflection", "Faculty dashboard", "Review queue", "Evaluation", "Setup & governance"])
+theme.sidebar_brand()
+page = st.sidebar.radio("Navigate", ["Student reflection", "Faculty dashboard", "Review queue", "Evaluation", "Setup & governance"])
 backends = ["offline", "claude", "openai"]
 if "backend" not in st.session_state:
     st.session_state.backend = default_backend()
@@ -49,13 +49,16 @@ st.sidebar.caption("Prototype · simulated data only · no real student data")
 
 # ---------------- Student reflection ----------------
 def page_student():
-    st.title("Weekly reflection")
+    theme.page_header("Weekly reflection", "About five minutes. It never affects your grade, and only class-level patterns reach your instructor.",
+                      eyebrow="Student · CourseCorrect")
     with st.expander("What is collected and who sees it", expanded=True):
         st.markdown(DISCLOSURE)
+    theme.section("Your details")
     c1, c2 = st.columns([1, 2])
     week = c1.selectbox("Week", WEEKS, index=len(WEEKS) - 1, format_func=week_label)
     student_id = c2.text_input("Student ID (simulated, e.g. N10001)", value="N10001")
     optional_prompt = OPTIONAL_PROMPT_ROTATION[week % len(OPTIONAL_PROMPT_ROTATION)]
+    theme.section("This week's prompts")
     with st.form("reflection", clear_on_submit=False):
         explain = st.text_area(CORE_PROMPTS["explain"], height=90)
         unclear = st.text_area(CORE_PROMPTS["unclear"], height=90)
@@ -97,7 +100,8 @@ def page_student():
 
 # ---------------- Faculty dashboard ----------------
 def page_dashboard():
-    st.title("Faculty dashboard")
+    theme.page_header("Faculty dashboard", "Class-level patterns from weekly reflections. The AI diagnoses; you decide what, if anything, to change.",
+                      eyebrow="Faculty · CourseCorrect")
     results = store.load_results(con)
     if not results:
         st.info("No reflections yet. Go to **Setup & governance** and load the simulated dataset, or submit a reflection.")
@@ -114,15 +118,17 @@ def page_dashboard():
 
     # Summary card
     with st.container(border=True):
-        st.subheader(f"This week at a glance · {week_label(week)}")
+        st.subheader("This week at a glance")
+        st.caption(week_label(week))
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Reflections", len(wk_results))
         m2.metric("Topics to revisit", len(top))
         m3.metric("Follow-up requests", len(fups))
         m4.metric("Awaiting review", len(queue))
         if not top.empty:
-            st.markdown("**Top topics needing attention:** " + " · ".join(
-                f"{r.topic} ({r.issues}/{r.responses})" for r in top.itertuples()))
+            st.markdown("**Top topics needing attention**")
+            st.markdown("".join(f'<span class="cc-pill">{r.topic} · {r.issues}/{r.responses}</span>'
+                                for r in top.itertuples()), unsafe_allow_html=True)
         flags = []
         if not vis_week.empty:
             flags += [f"⚡ Spike: **{r.topic}** ({int(r.issue_rate*100)}% vs. class warning limit {int(r.ucl*100)}%)"
@@ -134,6 +140,7 @@ def page_dashboard():
         if hidden_n:
             st.caption(f"{hidden_n} topic(s) this week had fewer than {MIN_GROUP_SIZE} responses and are hidden to protect privacy.")
 
+    theme.section("Suggestions")
     st.subheader("AI-suggested topics to revisit")
     st.caption("Suggestions from the AI, with their evidence. You decide what, if anything, to change.")
     tips = analytics.suggestions(df, results, week)
@@ -141,7 +148,7 @@ def page_dashboard():
         st.write("Nothing stands out this week.")
     for i, (tip, row) in enumerate(zip(tips, top.itertuples())):
         with st.container(border=True):
-            st.markdown("🤖 *Suggestion* · " + tip)
+            st.markdown(":violet-badge[AI suggestion] " + tip)
             b1, b2, _ = st.columns([1, 1, 6])
             if b1.button("👍 Useful", key=f"u{week}{i}"):
                 con.execute("INSERT INTO feedback(week, concept, verdict, created_at) VALUES (?,?,?,?)", (week, row.concept, "useful", store.now()))
@@ -150,6 +157,7 @@ def page_dashboard():
                 con.execute("INSERT INTO feedback(week, concept, verdict, created_at) VALUES (?,?,?,?)", (week, row.concept, "off", store.now()))
                 con.commit(); st.toast("Thanks, recorded.")
 
+    theme.section("Trends")
     st.subheader("Topic heatmap")
     metric = st.radio("Show", ["issue_rate", "confusion", "transfer", "pacing", "comprehension"], horizontal=True,
                       format_func=lambda m: {"issue_rate": "Share with an issue", "confusion": "Confusion",
@@ -162,12 +170,14 @@ def page_dashboard():
     txt = hm.pivot_table(index="topic", columns="week", values="txt", aggfunc="first").reindex(index=piv.index, columns=piv.columns).fillna("")
     piv = piv.astype(float)
     fig = go.Figure(go.Heatmap(z=piv.values, x=[f"W{w}" for w in piv.columns], y=piv.index, text=txt.values,
-                               texttemplate="%{text}", colorscale="Oranges" if metric != "comprehension" else "Teal",
-                               hoverongaps=False, colorbar=dict(title="")))
+                               texttemplate="%{text}", colorscale=theme.VIOLET_SCALE if metric != "comprehension" else theme.TEAL_SCALE,
+                               hoverongaps=False, xgap=2, ygap=2, colorbar=dict(title="", thickness=12, outlinewidth=0)))
     fig.update_layout(height=40 * len(piv.index) + 120, margin=dict(l=10, r=10, t=10, b=10), yaxis=dict(autorange="reversed"))
+    theme.style_fig(fig).update_xaxes(showgrid=False).update_yaxes(showgrid=False)
     st.plotly_chart(fig, width="stretch")
     st.caption(f"Cells marked <{MIN_GROUP_SIZE} are hidden (fewer than {MIN_GROUP_SIZE} responses).")
 
+    theme.section("Drill down")
     st.subheader("Topic detail")
     if vis_week.empty:
         st.write("No topics this week have enough responses to show.")
@@ -178,13 +188,17 @@ def page_dashboard():
         c1, c2 = st.columns([1, 2])
         counts = pd.DataFrame({"signal": ["Comprehension", "Confusion", "Transfer", "Recurring", "Pacing"],
                                "students": [row.comprehension, row.confusion, row.transfer, row.recurring, row.pacing]})
-        c1.plotly_chart(px.bar(counts, x="students", y="signal", orientation="h", height=260).update_layout(
-            margin=dict(l=0, r=0, t=0, b=0), yaxis_title=None), width="stretch")
+        bar = px.bar(counts, x="students", y="signal", orientation="h", height=260,
+                     color_discrete_sequence=[theme.VIOLET])
+        bar.update_traces(marker_line_width=0)
+        c1.plotly_chart(theme.style_fig(bar).update_layout(margin=dict(l=0, r=0, t=0, b=0), yaxis_title=None,
+                                                          bargap=0.35), width="stretch")
         c2.markdown(f"**{CONCEPTS[topic]['name']}** · {row.responses} responses")
         c2.caption("Paraphrased evidence (never direct quotes)")
         for e in analytics.evidence_for(results, week, topic):
             c2.markdown(f"- *{SIGNAL_LABELS[e['signal']]}* · {e['paraphrase']}" + (f" (×{e['count']})" if e["count"] > 1 else ""))
 
+    theme.section("Students")
     st.subheader("Follow-up requests")
     st.caption("Only students who ticked \"I'd like follow-up\" appear here. There is never an at-risk list.")
     if fups:
@@ -199,7 +213,7 @@ def page_dashboard():
 
 # ---------------- Review queue ----------------
 def page_review():
-    st.title("Human review queue")
+    theme.page_header("Human review queue", "A person checks uncertain labels before they count.", eyebrow="Faculty · CourseCorrect")
     st.caption(f"Low-confidence (< {REVIEW_CONFIDENCE}) labels, failed evidence checks and screened injection attempts "
                "are checked by a person before they count. Support cases are never shown here.")
     items = [r for r in store.load_results(con) if r["needs_review"] and not r["reviewed"] and not r["support"]]
@@ -235,7 +249,7 @@ def page_review():
 # ---------------- Evaluation ----------------
 def page_eval():
     from cc.evaluate import evaluate, to_markdown
-    st.title("Evaluation against pre-registered criteria")
+    theme.page_header("Evaluation", "Scored against pre-registered criteria (H1–H7).", eyebrow="Research · CourseCorrect")
     st.caption("Runs all 100 simulated reflections through the agent in a temporary database and scores Table 6. "
                "Thresholds were set before testing; a miss is a finding to report, not a reason to move the target.")
     b = st.session_state.backend
@@ -264,7 +278,7 @@ def page_eval():
 
 # ---------------- Setup & governance ----------------
 def page_setup():
-    st.title("Setup & governance")
+    theme.page_header("Setup & governance", "Load data, approve the course model, and review how the system is governed.", eyebrow="Admin · CourseCorrect")
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
         st.subheader("1. Load simulated dataset")
@@ -314,3 +328,4 @@ def page_setup():
 
 {"Student reflection": page_student, "Faculty dashboard": page_dashboard, "Review queue": page_review,
  "Evaluation": page_eval, "Setup & governance": page_setup}[page]()
+theme.footer()
