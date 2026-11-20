@@ -1,0 +1,32 @@
+# NYU-inspired theme for CourseCorrect.
+# NYU violet (#57068C) is the primary brand colour; the neutrals are tints of it.
+# No official NYU logo files are used: the header uses a plain text wordmark.
+[theme]
+base = "light"
+primaryColor = "#57068C"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F2FA"
+textColor = "#1D1626"
+linkColor = "#57068C"
+borderColor = "#E4DAEE"
+dataframeHeaderBackgroundColor = "#F6F2FA"
+violetColor = "#57068C"
+violetBackgroundColor = "#EEE5F5"
+violetTextColor = "#57068C"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+baseFontSize = 15
+metricValueFontWeight = 700
+baseRadius = "0.6rem"
+buttonRadius = "0.5rem"
+showWidgetBorder = true
+chartCategoricalColors = ["#57068C", "#8900E1", "#B98CDB", "#28A0B4", "#F2A900", "#6D6D6D"]
+chartSequentialColors = ["#F6F2FA", "#E4D3F1", "#D0B3E6", "#B98CDB", "#A066CF", "#8A3FC0", "#7520AE", "#57068C", "#43046C", "#2E024B"]
+
+[theme.sidebar]
+backgroundColor = "#F6F2FA"
+secondaryBackgroundColor = "#FFFFFF"
+
+[browser]
+gatherUsageStats = false
