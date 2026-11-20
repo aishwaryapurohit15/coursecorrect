@@ -1,0 +1,355 @@
+{
+  "course": "MASY1-GC 1800 Emerging Technologies (Fall 2026)",
+  "approved_by_faculty": false,
+  "note": "Draft course model for the prototype. Modules 1-6 follow the proposal's description of the course; Modules 7-8 are PLACEHOLDERS and must be replaced with the real syllabus before demoing to the instructor.",
+  "modules": [
+    {
+      "module": 1,
+      "week": 2,
+      "title": "What is Emerging Technology and Innovation",
+      "objectives": [
+        "Distinguish sustaining from disruptive innovation",
+        "Explain why AI is a general-purpose technology"
+      ],
+      "readings": [
+        "Christensen (1997), The Innovator's Dilemma"
+      ],
+      "concepts": [
+        {
+          "id": "sustaining_vs_disruptive",
+          "name": "Sustaining vs. disruptive innovation",
+          "description": "Sustaining innovations improve existing products for current customers; disruptive innovations start in low-end or new markets with simpler, cheaper offerings and move upmarket (Christensen).",
+          "aliases": [
+            "sustaining",
+            "disruptive",
+            "disruption",
+            "christensen",
+            "innovator's dilemma",
+            "low-end market"
+          ],
+          "misconceptions": [
+            {
+              "text": "Disruptive simply means a radically better or more advanced technology",
+              "pattern": "disruptive (just |simply )?means (a )?(radically |much )?(better|more advanced)"
+            }
+          ]
+        },
+        {
+          "id": "general_purpose_tech",
+          "name": "AI as a general-purpose technology",
+          "description": "General-purpose technologies (electricity, the internet, AI) spread across many sectors and enable complementary innovations.",
+          "aliases": [
+            "general-purpose",
+            "general purpose",
+            "gpt",
+            "electricity"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 2,
+      "week": 3,
+      "title": "Problem Framing and the Science of Innovation",
+      "objectives": [
+        "Reframe a problem before solving it",
+        "Apply falsifiability to innovation claims",
+        "Use statistical process control to separate signal from noise"
+      ],
+      "readings": [
+        "Popper (1959)",
+        "Module 2 deck"
+      ],
+      "concepts": [
+        {
+          "id": "problem_reframing",
+          "name": "Problem reframing",
+          "description": "Restating a problem precisely (who, why it matters, current limits) before choosing a solution.",
+          "aliases": [
+            "reframing",
+            "reframe",
+            "problem framing",
+            "problem statement"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "falsifiability",
+          "name": "Falsifiability (Popper)",
+          "description": "A claim is scientific only if it could be shown false; set success criteria before testing.",
+          "aliases": [
+            "falsifiab",
+            "popper",
+            "falsify",
+            "falsified"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "spc",
+          "name": "Statistical process control",
+          "description": "Control charts separate common-cause variation from special-cause signals that exceed control limits.",
+          "aliases": [
+            "statistical process control",
+            "spc",
+            "control chart",
+            "control limit",
+            "special cause",
+            "common cause"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 3,
+      "week": 4,
+      "title": "The Nature of Technology (Arthur)",
+      "objectives": [
+        "Describe technology as a combination of components harnessing phenomena",
+        "Place a technology on Arthur's maturity arc"
+      ],
+      "readings": [
+        "Arthur (2009), The Nature of Technology"
+      ],
+      "concepts": [
+        {
+          "id": "arthur_combinatorial",
+          "name": "Arthur's principles: combination and phenomena",
+          "description": "Technologies are combinations of existing components that harness natural phenomena to meet a need; new technologies come from combining old ones.",
+          "aliases": [
+            "arthur",
+            "combin",
+            "phenomena",
+            "phenomenon",
+            "components"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "tech_maturity",
+          "name": "Technology maturity arc",
+          "description": "Technologies move from origination through development and adaptation to maturity and lock-in.",
+          "aliases": [
+            "maturity",
+            "lock-in",
+            "lifecycle",
+            "life cycle",
+            "origination"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 4,
+      "week": 5,
+      "title": "Innovation by Imitation",
+      "objectives": [
+        "Apply Adopt-Transform-Apply to a workplace problem",
+        "Explain displacement of concepts"
+      ],
+      "readings": [
+        "Fortino (2003)",
+        "Schon (1963)"
+      ],
+      "concepts": [
+        {
+          "id": "adopt_transform_apply",
+          "name": "Adopt-Transform-Apply (Lift-Shift-Drop)",
+          "description": "Find a proven solution in another domain (adopt/lift), adapt it to the new context (transform/shift), and implement it (apply/drop).",
+          "aliases": [
+            "adopt-transform-apply",
+            "adopt transform apply",
+            "ata",
+            "lift shift drop",
+            "lift-shift-drop",
+            "imitation"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "displacement_of_concepts",
+          "name": "Displacement of concepts (Schon)",
+          "description": "New ideas arise when a concept from one context is displaced into another and reinterpreted.",
+          "aliases": [
+            "displacement",
+            "schon",
+            "schön"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 5,
+      "week": 6,
+      "title": "Invention vs. Innovation",
+      "objectives": [
+        "Distinguish invention from innovation",
+        "Classify innovations as incremental or breakthrough"
+      ],
+      "readings": [
+        "Module 5 deck"
+      ],
+      "concepts": [
+        {
+          "id": "invention_vs_innovation",
+          "name": "Invention vs. innovation",
+          "description": "An invention is a new idea or device; an innovation is the successful application of an idea that creates value in practice.",
+          "aliases": [
+            "invention",
+            "inventing",
+            "inventor"
+          ],
+          "misconceptions": [
+            {
+              "text": "Invention and innovation are the same thing",
+              "pattern": "(invention and innovation|innovation and invention) (are|is) (basically |really )?the same"
+            }
+          ]
+        },
+        {
+          "id": "incremental_vs_breakthrough",
+          "name": "Incremental vs. breakthrough innovation",
+          "description": "Incremental innovations improve existing things step by step; breakthrough innovations create new categories.",
+          "aliases": [
+            "incremental",
+            "breakthrough",
+            "radical innovation"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 6,
+      "week": 7,
+      "title": "Diffusion and Adoption",
+      "objectives": [
+        "Describe Rogers' adopter categories and five attributes",
+        "Locate the chasm and explain why it matters"
+      ],
+      "readings": [
+        "Rogers (2003)",
+        "Moore, Crossing the Chasm"
+      ],
+      "concepts": [
+        {
+          "id": "rogers_diffusion",
+          "name": "Rogers' diffusion of innovations",
+          "description": "Adopter categories (innovators 2.5%, early adopters 13.5%, early majority 34%, late majority 34%, laggards 16%) and five attributes: relative advantage, compatibility, complexity, trialability, observability.",
+          "aliases": [
+            "rogers",
+            "diffusion",
+            "adopter categor",
+            "early adopter",
+            "laggard",
+            "trialability",
+            "observability",
+            "relative advantage",
+            "compatibility"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "crossing_the_chasm",
+          "name": "Crossing the chasm",
+          "description": "The chasm sits between early adopters and the early majority, at roughly the 16% point of the adoption curve (2.5% innovators + 13.5% early adopters).",
+          "aliases": [
+            "chasm",
+            "sixteen percent",
+            "16%",
+            "16 percent",
+            "early majority"
+          ],
+          "misconceptions": [
+            {
+              "text": "The chasm is between the early majority and the late majority",
+              "pattern": "(between|separates) (the )?early (majority )?and (the )?late majority|early majority and (the )?late majority"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module": 7,
+      "week": 8,
+      "title": "[PLACEHOLDER] Responsible AI and Governance",
+      "objectives": [
+        "Apply the NIST AI RMF functions",
+        "Identify privacy obligations such as FERPA"
+      ],
+      "readings": [
+        "NIST AI RMF 1.0 (2023)"
+      ],
+      "concepts": [
+        {
+          "id": "nist_ai_rmf",
+          "name": "NIST AI Risk Management Framework",
+          "description": "Four functions: govern, map, measure, manage.",
+          "aliases": [
+            "nist",
+            "rmf",
+            "risk management framework",
+            "govern, map",
+            "map, measure"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "ai_privacy_ferpa",
+          "name": "Privacy and FERPA",
+          "description": "Education records are protected; access is limited to school officials with a legitimate educational interest.",
+          "aliases": [
+            "ferpa",
+            "privacy",
+            "education record",
+            "pii"
+          ],
+          "misconceptions": []
+        }
+      ]
+    },
+    {
+      "module": 8,
+      "week": 9,
+      "title": "[PLACEHOLDER] Proof of Concept to Proof of Value",
+      "objectives": [
+        "Distinguish proof of concept from proof of value",
+        "Design a 90-day pilot with success metrics"
+      ],
+      "readings": [
+        "Ng (2024), 90-day proof of value blueprint"
+      ],
+      "concepts": [
+        {
+          "id": "poc_vs_pov",
+          "name": "Proof of concept vs. proof of value",
+          "description": "A proof of concept shows something can work; a proof of value shows it delivers measurable value in a real setting.",
+          "aliases": [
+            "proof of concept",
+            "proof of value",
+            "poc",
+            "pov"
+          ],
+          "misconceptions": []
+        },
+        {
+          "id": "pilot_metrics",
+          "name": "90-day pilot and success metrics",
+          "description": "A time-boxed pilot with value measures defined up front and a go/no-go decision point.",
+          "aliases": [
+            "90-day",
+            "90 day",
+            "pilot",
+            "success metric",
+            "kpi"
+          ],
+          "misconceptions": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "backend": "offline",
+  "n": 100,
+  "hypotheses": {
+    "H1": {
+      "metric": "Planted issues in top 3 for their week",
+      "threshold": "100%",
+      "value": "5/5",
+      "pass": true,
+      "detail": [
+        {
+          "week": 7,
+          "concept": "crossing_the_chasm",
+          "scenario": "class-wide misconception",
+          "expect": "top3",
+          "pass": true,
+          "observed": "top3=['crossing_the_chasm', 'invention_vs_innovation']"
+        },
+        {
+          "week": 4,
+          "concept": "arthur_combinatorial",
+          "scenario": "pacing",
+          "expect": "top3",
+          "signal": "pacing_concern",
+          "pass": true,
+          "observed": "top3=['arthur_combinatorial']"
+        },
+        {
+          "week": 5,
+          "concept": "adopt_transform_apply",
+          "scenario": "transfer",
+          "expect": "top3",
+          "signal": "transfer_difficulty",
+          "pass": true,
+          "observed": "top3=['adopt_transform_apply']"
+        },
+        {
+          "week": 6,
+          "concept": "invention_vs_innovation",
+          "scenario": "confusion (recurring next week)",
+          "expect": "top3",
+          "pass": true,
+          "observed": "top3=['invention_vs_innovation', 'incremental_vs_breakthrough']"
+        },
+        {
+          "week": 7,
+          "concept": "invention_vs_innovation",
+          "scenario": "recurring issue",
+          "expect": "top3",
+          "pass": true,
+          "observed": "top3=['crossing_the_chasm', 'invention_vs_innovation']"
+        },
+        {
+          "week": 3,
+          "concept": "spc",
+          "scenario": "small group (3 students)",
+          "expect": "hidden",
+          "pass": true,
+          "observed": "hidden"
+        }
+      ]
+    },
+    "H2": {
+      "metric": "Macro-F1 vs. answer key",
+      "threshold": "F1 >= 0.75 (kappa comparison needs team labels)",
+      "value": 0.996,
+      "pass": true,
+      "detail": {
+        "comprehension": 0.989,
+        "conceptual_confusion": 0.988,
+        "transfer_difficulty": 1.0,
+        "recurring_issue": 1.0,
+        "pacing_concern": 1.0,
+        "support_need": 1.0
+      }
+    },
+    "H3": {
+      "metric": "Genuine support cases caught; accuracy on bait",
+      "threshold": "all; >= 90%",
+      "value": "4/4 caught; bait 4/4",
+      "pass": true,
+      "detail": {
+        "missed": [],
+        "false_positives": []
+      }
+    },
+    "H4": {
+      "metric": "Same main label across three runs",
+      "threshold": ">= 90%",
+      "value": "100/100",
+      "pass": true,
+      "detail": "offline labeler is deterministic"
+    },
+    "H5": {
+      "metric": "PII reaching the AI/dashboard; groups under 5 hidden",
+      "threshold": "0; 100%",
+      "value": "0 leaks; 5/5 small groups hidden",
+      "pass": true,
+      "detail": []
+    },
+    "H6": {
+      "metric": "Injection cases that change any output",
+      "threshold": "0",
+      "value": "0/4 changed (4/4 detected by the gateway)",
+      "pass": true,
+      "detail": []
+    },
+    "H7": {
+      "metric": "Error-rate gap between persona groups (directional)",
+      "threshold": "<= 10 points",
+      "value": "0.8 points",
+      "pass": true,
+      "detail": {
+        "native": 3.3,
+        "non-native": 2.5
+      }
+    },
+    "H8": {
+      "metric": "Reviewer rating (1-5); time to review",
+      "threshold": ">= 4.0; <= 15 min",
+      "value": "manual",
+      "pass": null,
+      "detail": "Run the dashboard review session with teammates/instructor and record ratings."
+    }
+  },
+  "core_pass": true,
+  "routes": {
+    "signal_store": 95,
+    "human_review": 5,
+    "support_router": 4,
+    "follow_up": 1
+  },
+  "errors": [
+    {
+      "id": "R035",
+      "category": "regular",
+      "expected": [
+        "comprehension"
+      ],
+      "got": []
+    },
+    {
+      "id": "R082",
+      "category": "bait",
+      "expected": [
+        "comprehension",
+        "conceptual_confusion"
+      ],
+      "got": [
+        "comprehension"
+      ]
+    },
+    {
+      "id": "R094",
+      "category": "pii",
+      "expected": [
+        "comprehension",
+        "conceptual_confusion"
+      ],
+      "got": [
+        "conceptual_confusion"
+      ]
+    }
+  ]
+}

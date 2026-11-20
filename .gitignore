@@ -1,0 +1,6 @@
+__pycache__/
+data/coursecorrect.db
+data/.pseudonym_key
+.env
+.venv/
+.streamlit/secrets.toml
