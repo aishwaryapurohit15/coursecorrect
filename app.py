@@ -29,6 +29,13 @@ CONCEPTS = concept_by_id()
 WEEKS = [m["week"] for m in load_course_model()["modules"]]
 
 
+BACKEND_NAMES = {"offline": "Offline", "claude": "Claude", "openai": "OpenAI"}
+
+
+def backend_name(b):
+    return BACKEND_NAMES.get(b, b)
+
+
 def week_label(w):
     m = module_for_week(w)
     return f"Week {w}: Module {m['module']} · {m['title']}" if m else f"Week {w}"
@@ -41,12 +48,13 @@ backends = ["offline", "claude", "openai"]
 if "backend" not in st.session_state:
     st.session_state.backend = default_backend()
 st.session_state.backend = st.sidebar.selectbox(
-    "AI labeler", backends, index=backends.index(st.session_state.backend),
-    help="Used by the reflection labeler and the AI tutor. claude needs ANTHROPIC_API_KEY, openai needs OPENAI_API_KEY. "
-         "offline is a rule-based fallback.")
+    "AI labeler", backends, index=backends.index(st.session_state.backend), format_func=backend_name,
+    help="Used by the reflection labeler and the AI tutor. Claude needs ANTHROPIC_API_KEY and OpenAI needs OPENAI_API_KEY. "
+         "Offline is a rule-based fallback that needs no key.")
 if st.session_state.backend == "offline":
-    st.sidebar.info("Offline mode: rule-based labeler and retrieval-only tutor (no API key). Set a key and pick claude or openai for the real agent.")
-st.sidebar.caption("Prototype · simulated data only · no real student data")
+    st.sidebar.info("Offline mode uses a rule-based labeler and a retrieval-only tutor, so no API key is needed. "
+                    "Add a key and pick Claude or OpenAI to use the full AI agent.")
+st.sidebar.caption("Prototype · Simulated data only · No real student data")
 
 
 # ---------------- Student reflection ----------------
@@ -111,19 +119,19 @@ def page_tutor():
     theme.page_header("AI course tutor", "Ask about any idea from the course so far. It explains, corrects common mix-ups and quizzes you; it won't do graded work for you.",
                       eyebrow="Student · CourseCorrect")
     c1, c2 = st.columns([2, 1])
-    week = c1.selectbox("I'm in", WEEKS, index=len(WEEKS) - 1, format_func=week_label, key="tutor_week",
+    week = c1.selectbox("Your current week", WEEKS, index=len(WEEKS) - 1, format_func=week_label, key="tutor_week",
                         help="The tutor only uses material taught up to this week.")
     if c2.button("Start a new chat", width="stretch"):
         st.session_state.tutor_msgs = []
         st.session_state.tutor_last = []
     with st.expander("How the tutor works and what it keeps"):
         st.markdown(
-            "- Answers come only from the instructor-approved **course model**; if something isn't there, it says so rather than guess.\n"
+            "- Answers come only from the instructor-approved **course model**. If something isn't there, it says so rather than guessing.\n"
             "- Your message passes the same **privacy gateway** as reflections: names, emails, phone numbers and IDs are removed, "
             "and instruction-like text aimed at the AI is ignored.\n"
             "- It keeps **no transcript** and no student ID. Your instructor sees only how many questions were asked per topic, "
             f"and topics with fewer than {MIN_GROUP_SIZE} questions are hidden.\n"
-            "- If you mention you're struggling, it points you to support right away. That stays with you: nothing is logged.\n"
+            "- If you mention that you're struggling, it points you to support right away. That stays with you, and nothing is logged.\n"
             "- It is an AI and can be wrong. It is not a crisis service and has no effect on your grade.")
 
     msgs = st.session_state.setdefault("tutor_msgs", [])
@@ -139,7 +147,7 @@ def page_tutor():
             for n in m.get("notes", []):
                 st.caption("🛡️ " + n)
             if m["role"] == "assistant" and m.get("backend"):
-                st.caption("Written by " + {"offline": "the course-model retriever (offline)", "claude": "Claude, grounded in the course model",
+                st.caption("Written by " + {"offline": "the course model retriever (offline)", "claude": "Claude, grounded in the course model",
                                             "openai": "OpenAI, grounded in the course model", "rules": "CourseCorrect's guardrails"}[m["backend"]])
 
     prompt = None
@@ -171,7 +179,7 @@ def page_dashboard():
                       eyebrow="Faculty · CourseCorrect")
     results = store.load_results(con)
     if not results:
-        st.info("No reflections yet. Go to **Setup & governance** and load the simulated dataset, or submit a reflection.")
+        st.info("No reflections yet. Go to **Setup & governance** to load the simulated dataset, or submit a reflection.")
         return
     df = analytics.topic_week_table(results)
     weeks = sorted({r["week"] for r in results})
@@ -198,14 +206,14 @@ def page_dashboard():
                                 for r in top.itertuples()), unsafe_allow_html=True)
         flags = []
         if not vis_week.empty:
-            flags += [f"⚡ Spike: **{r.topic}** ({int(r.issue_rate*100)}% vs. class warning limit {int(r.ucl*100)}%)"
+            flags += [f"⚡ Spike: **{r.topic}** ({int(r.issue_rate*100)}% vs. a class warning limit of {int(r.ucl*100)}%)"
                       for r in vis_week[vis_week["spike"]].itertuples()]
             flags += [f"🔁 Recurring: **{r.topic}** keeps coming up across weeks" for r in vis_week[vis_week["recurring_flag"]].itertuples()]
         for f in flags:
             st.markdown(f)
         hidden_n = int(df[(df["week"] == week) & df["hidden"]].shape[0]) if not df.empty else 0
         if hidden_n:
-            st.caption(f"{hidden_n} topic(s) this week had fewer than {MIN_GROUP_SIZE} responses and are hidden to protect privacy.")
+            st.caption(f"{hidden_n} {'topic' if hidden_n == 1 else 'topics'} this week had fewer than {MIN_GROUP_SIZE} responses and {'is' if hidden_n == 1 else 'are'} hidden to protect privacy.")
 
     theme.section("Suggestions")
     st.subheader("AI-suggested topics to revisit")
@@ -255,19 +263,19 @@ def page_dashboard():
         c1, c2 = st.columns([1, 2])
         counts = pd.DataFrame({"signal": ["Comprehension", "Confusion", "Transfer", "Recurring", "Pacing"],
                                "students": [row.comprehension, row.confusion, row.transfer, row.recurring, row.pacing]})
-        bar = px.bar(counts, x="students", y="signal", orientation="h", height=260,
+        bar = px.bar(counts, x="students", y="signal", orientation="h", height=260, labels={"students": "Students", "signal": "Signal"},
                      color_discrete_sequence=[theme.VIOLET])
         bar.update_traces(marker_line_width=0)
         c1.plotly_chart(theme.style_fig(bar).update_layout(margin=dict(l=0, r=0, t=0, b=0), yaxis_title=None,
                                                           bargap=0.35), width="stretch")
         c2.markdown(f"**{CONCEPTS[topic]['name']}** · {row.responses} responses")
-        c2.caption("Paraphrased evidence (never direct quotes)")
+        c2.caption("Paraphrased evidence (never direct quotes).")
         for e in analytics.evidence_for(results, week, topic):
             c2.markdown(f"- *{SIGNAL_LABELS[e['signal']]}* · {e['paraphrase']}" + (f" (×{e['count']})" if e["count"] > 1 else ""))
 
     theme.section("AI tutor")
     st.subheader("What students asked the tutor about")
-    st.caption(f"Question counts per topic only: no question text and no names. Topics with fewer than {MIN_GROUP_SIZE} questions are hidden.")
+    st.caption(f"Question counts per topic only, with no question text and no names. Topics with fewer than {MIN_GROUP_SIZE} questions are hidden.")
     tq = store.tutor_topic_counts(con, week)
     shown_tq = [t for t in tq if t["n"] >= MIN_GROUP_SIZE]
     if shown_tq:
@@ -276,19 +284,22 @@ def page_dashboard():
     else:
         st.write("Not enough tutor questions this week to show." if tq else "No tutor questions this week yet.")
     if len(tq) > len(shown_tq):
-        st.caption(f"{len(tq) - len(shown_tq)} topic(s) hidden (fewer than {MIN_GROUP_SIZE} questions).")
+        n_hidden = len(tq) - len(shown_tq)
+        st.caption(f"{n_hidden} {'topic' if n_hidden == 1 else 'topics'} hidden (fewer than {MIN_GROUP_SIZE} questions).")
 
     theme.section("Students")
     st.subheader("Follow-up requests")
     st.caption("Only students who ticked \"I'd like follow-up\" appear here. There is never an at-risk list.")
     if fups:
-        st.dataframe(pd.DataFrame([dict(f) for f in fups])[["student_id", "week", "topic_hint", "created_at"]], hide_index=True)
+        st.dataframe(pd.DataFrame([dict(f) for f in fups])[["student_id", "week", "topic_hint", "created_at"]]
+                     .rename(columns={"student_id": "Student ID", "week": "Week", "topic_hint": "Topic hint", "created_at": "Requested at"}),
+                     hide_index=True)
     else:
         st.write("None this week.")
 
     fb = pd.read_sql("SELECT verdict, COUNT(*) n FROM feedback GROUP BY verdict", con)
     if not fb.empty:
-        st.caption("Insight-quality feedback so far: " + ", ".join(f"{r.verdict}: {r.n}" for r in fb.itertuples()))
+        st.caption("Insight-quality feedback so far: " + ", ".join(f"{r.verdict.capitalize()} {r.n}" for r in fb.itertuples()))
 
 
 # ---------------- Review queue ----------------
@@ -298,23 +309,24 @@ def page_review():
                "are checked by a person before they count. Support cases are never shown here.")
     items = [r for r in store.load_results(con) if r["needs_review"] and not r["reviewed"] and not r["support"]]
     if not items:
-        st.success("Queue is empty.")
+        st.success("The queue is empty.")
         return
     for r in items:
-        with st.expander(f"{r['id']} · Week {r['week']} · {r['review_reason']}"):
+        reason = r["review_reason"] or ""
+        with st.expander(f"{r['id']} · Week {r['week']} · {reason[:1].upper() + reason[1:]}"):
             st.markdown(f"**Explain:** {r['explain'] or '—'}  \n**Least clear:** {r['unclear'] or '—'}  \n"
                         f"**Apply:** {r['apply'] or '—'}" + (f"  \n**Optional:** {r['optional']}" if r["optional"] else ""))
             st.caption("Text shown after redaction and injection screening.")
             keep = []
             for j, f in enumerate(r["findings"]):
                 c = CONCEPTS.get(f["concept"])
-                lab = f"{SIGNAL_LABELS[f['signal']]} · {c['name'] if c else 'no topic'} · conf {f['confidence']:.2f} · evidence: \"{f['evidence']}\""
+                lab = f"{SIGNAL_LABELS[f['signal']]} · {c['name'] if c else 'No topic'} · Confidence {f['confidence']:.2f} · Evidence: \"{f['evidence']}\""
                 if st.checkbox(lab, value=True, key=f"k{r['id']}{j}"):
                     keep.append(f)
             add_sig = st.multiselect("Add missing signal", [s for s in SIGNALS if s != "support_need"], key=f"a{r['id']}",
                                      format_func=lambda s: SIGNAL_LABELS[s])
-            add_con = st.selectbox("…for topic", ["none"] + list(CONCEPTS), key=f"c{r['id']}",
-                                   format_func=lambda c: "no topic" if c == "none" else CONCEPTS[c]["name"])
+            add_con = st.selectbox("For topic", ["none"] + list(CONCEPTS), key=f"c{r['id']}",
+                                   format_func=lambda c: "No topic" if c == "none" else CONCEPTS[c]["name"])
             if st.button("Approve", key=f"ap{r['id']}", type="primary"):
                 for s in add_sig:
                     keep.append({"signal": s, "concept": add_con, "evidence": "(added by reviewer)",
@@ -334,25 +346,26 @@ def page_eval():
                "Thresholds were set before testing; a miss is a finding to report, not a reason to move the target.")
     b = st.session_state.backend
     if b != "offline":
-        st.warning(f"This makes about 140 calls to the {b} API (100 reflections + stability reruns on 20).")
-    if st.button(f"Run evaluation with the {b} labeler", type="primary"):
+        st.warning(f"This makes about 140 calls to the {backend_name(b)} API (100 reflections plus stability reruns on 20).")
+    if st.button(f"Run evaluation with the {backend_name(b)} labeler", type="primary"):
         bar = st.progress(0.0)
         rep = evaluate(b, progress=bar.progress)
         st.session_state.rep = rep
     rep = st.session_state.get("rep")
     if rep:
         (st.success if rep["core_pass"] else st.error)(
-            f"Core criteria H1, H3, H5, H6: {'met' if rep['core_pass'] else 'not met'} ({rep['backend']} labeler)")
+            f"Core criteria H1, H3, H5 and H6: {'met' if rep['core_pass'] else 'not met'} ({backend_name(rep['backend'])} labeler)")
         tbl = pd.DataFrame([{"Hypothesis": h, "Metric": d["metric"], "Threshold": d["threshold"], "Result": str(d["value"]),
                              "Pass": "—" if d["pass"] is None else ("✅" if d["pass"] else "❌")} for h, d in rep["hypotheses"].items()])
         st.dataframe(tbl, hide_index=True, width="stretch")
         if rep["backend"] == "offline":
-            st.info("Offline scores are optimistic: its rules were written alongside this dataset. Treat them as a pipeline "
+            st.info("Offline scores are optimistic because the offline rules were written alongside this dataset. Treat them as a pipeline "
                     "check. The real test is the LLM labeler, plus fresh hand-written reflections the rules have never seen.")
         with st.expander("Per-signal F1 and H1 detail"):
-            st.json({"per_signal_f1": rep["hypotheses"]["H2"]["detail"], "planted": rep["hypotheses"]["H1"]["detail"]})
+            st.json({"Per-signal F1": {SIGNAL_LABELS.get(k, k): v for k, v in rep["hypotheses"]["H2"]["detail"].items()},
+                     "Planted issues (H1)": rep["hypotheses"]["H1"]["detail"]})
         with st.expander(f"Failure log ({len(rep['errors'])})"):
-            st.dataframe(pd.DataFrame(rep["errors"]), hide_index=True, width="stretch")
+            st.dataframe(pd.DataFrame(rep["errors"]).rename(columns=str.capitalize), hide_index=True, width="stretch")
         st.download_button("Download report (Markdown)", to_markdown(rep), file_name=f"eval_{rep['backend']}.md")
 
 
@@ -361,18 +374,18 @@ def page_setup():
     theme.page_header("Setup & governance", "Load data, approve the course model, and review how the system is governed.", eyebrow="Admin · CourseCorrect")
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
-        st.subheader("1. Load simulated dataset")
+        st.subheader("1. Load the simulated dataset")
         st.write("100 fictional reflections: 10 personas × Weeks 2–9 plus 20 adversarial cases.")
-        if st.button(f"Process dataset with the {st.session_state.backend} labeler", type="primary"):
+        if st.button(f"Process dataset with the {backend_name(st.session_state.backend)} labeler", type="primary"):
             store.reset(con)
             bar = st.progress(0.0)
             run_dataset(con, st.session_state.backend, progress=bar.progress)
-            st.success("Done. Open the Faculty dashboard.")
+            st.success("Done. Open the **Faculty dashboard** to see the results.")
         if st.button("Clear all reflections"):
             store.reset(con); st.success("Cleared.")
     with c2, st.container(border=True):
         st.subheader("Retention")
-        st.write("End of term: delete all reflection text and follow-up names; keep only de-identified labels.")
+        st.write("At the end of term, delete all reflection text and follow-up names, and keep only de-identified labels.")
         if st.button("Run end-of-term purge"):
             store.purge_raw_text(con); st.success("Raw text deleted.")
 
@@ -400,10 +413,11 @@ def page_setup():
                     "The agent has no write access to grades, the LMS or student records.")
 
     with st.expander("Audit log"):
-        st.dataframe(pd.read_sql("SELECT ts, actor, action, detail FROM audit ORDER BY id DESC LIMIT 200", con),
+        st.dataframe(pd.read_sql("SELECT ts AS Time, actor AS Actor, action AS Action, detail AS Detail FROM audit ORDER BY id DESC LIMIT 200", con),
                      hide_index=True, width="stretch")
     with st.expander("Student flags on how reflections were read"):
-        st.dataframe(pd.read_sql("SELECT reflection_id, note, created_at FROM student_flags", con), hide_index=True)
+        st.dataframe(pd.read_sql("SELECT reflection_id AS \"Reflection ID\", note AS Note, created_at AS \"Flagged at\" FROM student_flags", con),
+                     hide_index=True)
 
 
 {"Student reflection": page_student, "AI tutor": page_tutor, "Faculty dashboard": page_dashboard, "Review queue": page_review,

@@ -1,6 +1,18 @@
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Local data and secrets
 data/coursecorrect.db
 data/.pseudonym_key
 .env
-.venv/
 .streamlit/secrets.toml
+
+# Editors and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

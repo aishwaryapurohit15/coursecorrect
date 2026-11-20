@@ -6,7 +6,7 @@
     {
       "module": 1,
       "week": 2,
-      "title": "What is Emerging Technology and Innovation",
+      "title": "What Is Emerging Technology and Innovation",
       "objectives": [
         "Distinguish sustaining from disruptive innovation",
         "Explain why AI is a general-purpose technology"
@@ -152,7 +152,7 @@
       ],
       "readings": [
         "Fortino (2003)",
-        "Schon (1963)"
+        "Schön (1963)"
       ],
       "concepts": [
         {
@@ -171,7 +171,7 @@
         },
         {
           "id": "displacement_of_concepts",
-          "name": "Displacement of concepts (Schon)",
+          "name": "Displacement of concepts (Schön)",
           "description": "New ideas arise when a concept from one context is displaced into another and reinterpreted.",
           "aliases": [
             "displacement",
